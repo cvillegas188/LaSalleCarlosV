@@ -1,0 +1,816 @@
+#include "p16F887.inc"   ; TODO INSERT CONFIG CODE HERE USING CONFIG BITS GENERATOR
+ 	__CONFIG	_CONFIG1,	_INTRC_OSC_NOCLKOUT & _WDT_OFF & _PWRTE_OFF & _MCLRE_ON & _CP_OFF & _CPD_OFF & _BOR_OFF & _IESO_ON & _FCMEN_ON & _LVP_OFF 
+ 	__CONFIG	_CONFIG2,	_BOR40V & _WRT_OFF
+
+RES_VECT  CODE    0x0000            ; processor reset vector
+    GOTO    START                   ; go to beginning of program
+
+MAIN_PROG CODE                      ; let linker place main program
+i EQU 0x20
+j EQU 0x21
+k EQU 0x30
+m EQU 0x31
+q EQU 0x34
+r EQU 0x35
+s EQU 0x36
+o EQU 0x37
+p EQU 0x38
+x EQU 0x39
+y EQU 0x40
+aux EQU 0x70
+ 
+;VARIABLES DE ARRIBA
+u EQU 0x41
+x1 EQU 0x42
+x2 EQU 0x43
+x3 EQU 0x44
+x4 EQU 0x45
+x5 EQU 0x46
+x6 EQU 0x47
+x7 EQU 0x48
+x8 EQU 0x49
+
+;VARIABLES DE ABAJO
+v EQU 0x50
+z1 EQU 0x51
+z2 EQU 0x52
+z3 EQU 0x53
+z4 EQU 0x54
+z5 EQU 0x55
+z6 EQU 0x56
+z7 EQU 0x57
+z8 EQU 0x58
+
+ 
+START
+
+    BANKSEL PORTA ;3
+    CLRF PORTA ;Init PORTA
+    BANKSEL ANSEL ;
+    CLRF ANSEL ;digital I/O
+    CLRF ANSELH
+    BANKSEL TRISA ;
+    CLRF TRISA
+    CLRF TRISB
+    CLRF TRISC
+    MOVLW b'00000111'
+    MOVWF TRISD
+    CLRF TRISE
+    BCF STATUS,RP1
+    BCF STATUS,RP0
+    MOVLW b'00101000'
+    MOVWF TRISA
+    CLRF TRISB
+    CLRF TRISC
+    CLRF TRISE
+    
+    INITLCD
+    BCF PORTA,0		;reset
+    MOVLW 0x01
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+    MOVLW 0x0C		;first line
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+         
+    MOVLW 0x3C		;cursor mode
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+STARTL
+    MOVLW d'1'
+    MOVWF r
+    MOVLW d'1'
+    MOVWF s
+    MOVLW 0x84
+    MOVWF u
+    MOVLW 0x94
+    MOVWF v
+    MOVLW 0x42
+    MOVWF FSR
+    MOVLW b'00000001'
+    MOVWF aux
+   
+    CALL PRINTMESSAGE
+    
+RUTINA
+    BCF STATUS, C
+    BTFSC PORTA, 5
+    GOTO $+6
+    RRF aux
+    BTFSS STATUS, C
+    GOTO $+3
+    MOVLW 0x51
+    MOVWF FSR
+    MOVLW b'00101000'
+    MOVWF PORTA
+    MOVLW b'00010000'
+    MOVWF PORTD
+    CALL CHECAR1
+    RLF PORTD
+    CALL CHECAR4
+    RLF PORTD
+    CALL CHECAR7
+    RLF PORTD
+    CALL CHECARAST
+    GOTO RUTINA
+    
+CHECAR1
+    BTFSS PORTD, 0
+    GOTO CHECAR2
+    GOTO IMPRIMIR1
+
+CHECAR2
+    BTFSS PORTD, 1
+    GOTO CHECAR3
+    GOTO IMPRIMIR2
+ 
+CHECAR3
+    BTFSS PORTD, 2
+    RETURN
+    GOTO IMPRIMIR3
+
+CHECAR4
+    BTFSS PORTD, 0
+    GOTO CHECAR5
+    GOTO IMPRIMIR4
+
+CHECAR5
+    BTFSS PORTD, 1
+    GOTO CHECAR6
+    GOTO IMPRIMIR5
+ 
+CHECAR6
+    BTFSS PORTD, 2
+    RETURN
+    GOTO IMPRIMIR6
+    
+CHECAR7
+    BTFSS PORTD, 0
+    GOTO CHECAR8
+    GOTO IMPRIMIR7
+
+CHECAR8
+    BTFSS PORTD, 1
+    GOTO CHECAR9
+    GOTO IMPRIMIR8
+ 
+CHECAR9
+    BTFSS PORTD, 2
+    RETURN
+    GOTO IMPRIMIR9
+    
+CHECARAST
+    BTFSS PORTD, 0
+    GOTO CHECAR0
+    GOTO COMPROBAR
+    
+CHECAR0
+    BTFSS PORTD, 1
+    GOTO CHECARGATO
+    GOTO IMPRIMIR0
+    
+CHECARGATO
+    BTFSS PORTD, 2
+    RETURN
+    GOTO RESETEAR
+    
+IMPRIMEARRIBA
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVFW u		;LCD position
+    MOVWF PORTB
+   
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    RETURN
+    
+IMPRIMEABAJO
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVFW v		;LCD position
+    MOVWF PORTB
+    
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    RETURN
+    
+VALIDARPOS
+    BTFSC PORTA, 3
+    GOTO $+3
+    CALL IMPRIMEARRIBA
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    CALL IMPRIMEABAJO
+    RETURN
+    
+IMPRIMIR1
+    CALL segundo
+    CALL GUARDAR1
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '1'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR2
+   CALL segundo
+   call GUARDAR2
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '2'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR3
+    CALL segundo
+    CALL GUARDAR3
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '3'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR4
+    CALL segundo
+    CALL GUARDAR4
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '4'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+ 
+IMPRIMIR5
+  CALL segundo
+  CALL GUARDAR5
+  BTFSC PORTA, 3
+  GOTO $+3
+  INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '5'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR6
+    CALL segundo
+    CALL GUARDAR6
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '6'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR7
+    CALL segundo
+    CALL GUARDAR7
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '7'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR8
+    CALL segundo
+    CALL GUARDAR8
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '8'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR9
+    CALL segundo
+    CALL GUARDAR9
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '9'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+IMPRIMIR0
+    CALL segundo
+    CALL GUARDAR0
+    BTFSC PORTA, 3
+    GOTO $+3
+    INCF u
+    GOTO $+4
+    BTFSC PORTA, 5
+    GOTO $+2
+    INCF v
+    CALL VALIDARPOS
+    MOVLW '0'
+    MOVWF PORTB
+    CALL exec
+    call segundo
+    BTFSC PORTA, 3
+    GOTO $+2
+    CALL PRINTHIDE
+    
+    GOTO RUTINA
+    
+GUARDAR1
+    MOVLW d'1'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+ 
+GUARDAR2
+    MOVLW d'2'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+GUARDAR3
+    MOVLW d'3'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+  
+GUARDAR4
+    MOVLW d'4'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+GUARDAR5
+    MOVLW d'5'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+ 
+GUARDAR6
+    MOVLW d'6'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+GUARDAR7
+    MOVLW d'7'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+GUARDAR8
+    MOVLW d'8'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+GUARDAR9
+    MOVLW d'9'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+GUARDAR0
+    MOVLW d'0'
+    MOVWF INDF
+    INCF FSR
+    RETURN
+    
+COMPROBAR
+    MOVFW x1
+    XORWF z1
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x2
+    XORWF z2
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x3
+    XORWF z3
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x4
+    XORWF z4
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x5
+    XORWF z5
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x6
+    XORWF z6
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x7
+    XORWF z7
+    BTFSS STATUS, Z
+    CALL DECLINED
+    MOVFW x8
+    XORWF z8
+    BTFSS STATUS, Z
+    CALL DECLINED
+    CALL ACCEPTED
+    GOTO RUTINA
+    
+ACCEPTED
+    CALL segundo
+    BCF PORTA,0		;reset
+    MOVLW 0x01
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+    MOVLW 0x0C		;first line
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+     
+    ACEPTADO
+    MOVLW 0x3C		;cursor mode
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVLW 0xC3		;LCD position
+    MOVWF PORTB
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    MOVLW 'A'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'D'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'M'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'I'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'T'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'I'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'D'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'O'
+    MOVWF PORTB
+    CALL exec
+    
+    GOTO RUTINA
+    
+    
+DECLINED
+    CALL segundo
+    BCF PORTA,0		;reset
+    MOVLW 0x01
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+    MOVLW 0x0C		;first line
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+    DECLINADO
+    
+    MOVLW 0x3C		;cursor mode
+    MOVWF PORTB
+    
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVLW 0xC5	;LCD position
+    MOVWF PORTB
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    MOVLW 'N'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'O'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW ' '
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'V'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'A'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'L'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'I'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'D'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'O'
+    MOVWF PORTB
+    CALL exec
+    
+    GOTO RUTINA
+    
+PRINTMESSAGE
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVLW 0x80		;LCD position
+    MOVWF PORTB
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    MOVLW 'C'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'L'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'A'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'V'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW ':'
+    MOVWF PORTB
+    CALL exec
+    
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVLW 0x90		;LCD position
+    MOVWF PORTB
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    MOVLW 'P'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'A'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'S'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW 'S'
+    MOVWF PORTB
+    CALL exec
+    
+    MOVLW ':'
+    MOVWF PORTB
+    CALL exec
+   
+    GOTO RUTINA
+    
+PRINTHIDE
+    BCF PORTA,0		;command mode
+    CALL time
+    
+    MOVFW u ;LCD position
+    MOVWF PORTB
+    CALL exec
+    
+    BSF PORTA,0		;data mode
+    CALL time
+    
+    MOVLW '-'
+    MOVWF PORTB
+    CALL exec
+    
+    GOTO RUTINA
+    
+RESETEAR
+    GOTO INITLCD
+    
+exec
+
+    BSF PORTA,1		;exec
+    CALL time
+    BCF PORTA,1
+    CALL time
+    RETURN
+
+time
+    CLRF i
+    MOVLW d'10'
+    MOVWF j
+ciclo    
+    MOVLW d'80'
+    MOVWF i
+    DECFSZ i
+    GOTO $-1
+    DECFSZ j
+    GOTO ciclo
+    RETURN
+    
+segundo
+nop
+nop
+movlw d'151'
+movwf o
+oloop
+    decfsz o,f
+    goto oloop
+    movlw d'43'
+    movwf p
+ploop
+    nop
+    movlw d'70' 
+    movwf y
+yloop
+
+    movlw d'20' 
+    movwf x
+xloop
+    nop
+    decfsz x,f
+    goto xloop
+    decfsz y,f
+    goto yloop
+    decfsz p,f
+    goto ploop
+    return;salir de la rutina de tiempo y regresar al
+ END
